@@ -141,7 +141,7 @@ export function Message({
                 // @ts-ignore
                 if (children.length) {
                   // @ts-ignore
-                  if (children[0] == "▍") {
+                  if (children[0] === "▍") {
                     return (
                       <span className="mt-1 animate-pulse cursor-default">
                         ▍

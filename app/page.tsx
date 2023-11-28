@@ -6,8 +6,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RiUserLine } from "react-icons/ri";
 import { IoIosArrowForward } from "react-icons/io";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import { fetchEventSource } from "@microsoft/fetch-event-source";
 
 import PromptForm from "@/components/prompt-form";
+import { MemoizedReactMarkdown } from "@/components/markdown";
+import { CodeBlock } from "@/components/codeblock";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 function PulsatingCursor() {
   return (
@@ -35,22 +48,127 @@ export function Message({
   message: string;
   onResubmit?: () => void;
 }) {
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message);
+  };
+
   return (
     <div className="flex flex-col space-y-1 pb-4">
-      <div className="min-w-4xl flex max-w-4xl space-x-4  pb-2">
-        <Avatar className="h-8 w-8 rounded-md">
+      <div className="min-w-4xl flex max-w-4xl space-x-4">
+        <Avatar
+          className={`h-8 w-8 rounded-md p-[1px] ${
+            type === "ai" && message.length === 0
+              ? "animate-border bg-gradient-to-r from-transparent via-gray-500 to-white bg-[length:400%_400%]"
+              : "bg-transparent border border-[#4C4C4C]"
+          }`}
+        >
           <AvatarFallback
             className={
-              type === "user"
-                ? "rounded-md bg-[#222222]"
+              type === "human"
+                ? "rounded-md bg-transparent "
                 : "rounded-md bg-[#111111]"
             }
           >
-            {type === "user" ? <RiUserLine /> : <IoIosArrowForward />}
+            {type === "human" ? (
+              <RiUserLine color="white" />
+            ) : (
+              <IoIosArrowForward />
+            )}
           </AvatarFallback>
         </Avatar>
         <div className="ml-4 mt-1 flex-1 flex-col space-y-2 overflow-hidden px-1">
           {message?.length === 0 && <PulsatingCursor />}
+          <MemoizedReactMarkdown
+            className="prose dark:prose-invert prose-p:leading-relaxed prose-pre:p-0 break-words text-md"
+            remarkPlugins={[remarkGfm, remarkMath]}
+            components={{
+              table({ children }) {
+                return (
+                  <div className="mb-2 rounded-md border">
+                    <Table>{children}</Table>
+                  </div>
+                );
+              },
+              thead({ children }) {
+                return <TableHeader>{children}</TableHeader>;
+              },
+              tbody({ children }) {
+                return <TableBody>{children}</TableBody>;
+              },
+              tr({ children }) {
+                return <TableRow>{children}</TableRow>;
+              },
+              th({ children }) {
+                return <TableHead className="py-2">{children}</TableHead>;
+              },
+              td({ children }) {
+                return <TableCell className="py-2">{children}</TableCell>;
+              },
+              p({ children }) {
+                return <p className="mb-5">{children}</p>;
+              },
+              a({ children, href }) {
+                return (
+                  <a
+                    href={href}
+                    className="text-primary underline"
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {children}
+                  </a>
+                );
+              },
+              ol({ children }) {
+                return (
+                  <ol className="mb-5 list-decimal pl-[30px]">{children}</ol>
+                );
+              },
+              ul({ children }) {
+                return <ul className="mb-5 list-disc pl-[30px]">{children}</ul>;
+              },
+              li({ children }) {
+                return <li className="pb-1">{children}</li>;
+              },
+              code({ node, inline, className, children, ...props }) {
+                if (children.length) {
+                  if (children[0] == "▍") {
+                    return (
+                      <span className="mt-1 animate-pulse cursor-default">
+                        ▍
+                      </span>
+                    );
+                  }
+
+                  children[0] = (children[0] as string).replace("`▍`", "▍");
+                }
+
+                const match = /language-(\w+)/.exec(className || "");
+
+                if (inline) {
+                  return (
+                    <code
+                      className="light:bg-slate-200 px-1 text-md dark:bg-slate-800"
+                      {...props}
+                    >
+                      {children}
+                    </code>
+                  );
+                }
+
+                return (
+                  <CodeBlock
+                    key={Math.random()}
+                    language={(match && match[1]) || ""}
+                    value={String(children).replace(/\n$/, "")}
+                    {...props}
+                  />
+                );
+              },
+            }}
+          >
+            {message}
+          </MemoizedReactMarkdown>
         </div>
       </div>
     </div>
@@ -62,8 +180,63 @@ export default function Home() {
     { type: string; message: string }[]
   >([{ type: "ai", message: "Hey there! How can I help?" }]);
 
+  const getStockData = async ({ ticker }: { ticker: string }) => {
+    console.log(ticker);
+  };
+
   async function onSubmit(value: string) {
-    setMessages((messages) => [...messages, { type: "user", message: value }]);
+    let message = "";
+
+    setMessages((previousMessages: any) => [
+      ...previousMessages,
+      { type: "human", message: value },
+    ]);
+
+    setMessages((previousMessages) => [
+      ...previousMessages,
+      { type: "ai", message },
+    ]);
+
+    await fetchEventSource(
+      `${process.env.NEXT_PUBLIC_SUPERAGENT_API_URL}/agents/${process.env.NEXT_PUBLIC_AGENT_ID}/invoke`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPERAGENT_API_KEY}`,
+        },
+        body: JSON.stringify({
+          input: value,
+          enableStreaming: true,
+        }),
+        openWhenHidden: true,
+        async onmessage(event) {
+          if (event.data !== "[END]" && event.event !== "function_call") {
+            message += event.data === "" ? `${event.data} \n` : event.data;
+            setMessages((previousMessages) => {
+              let updatedMessages = [...previousMessages];
+
+              for (let i = updatedMessages.length - 1; i >= 0; i--) {
+                if (updatedMessages[i].type === "ai") {
+                  updatedMessages[i].message = message;
+                  break;
+                }
+              }
+
+              return updatedMessages;
+            });
+          }
+
+          if (event.event === "function_call") {
+            const data = JSON.parse(event.data);
+
+            if (data.function("get_stock")) {
+              await getStockData({ ...data.args });
+            }
+          }
+        },
+      }
+    );
   }
 
   return (
@@ -72,7 +245,7 @@ export default function Home() {
         <ScrollArea className="relative flex grow flex-col px-4">
           <div className="from-[#262626] absolute inset-x-0 top-0 z-20 h-20 bg-gradient-to-b from-0% to-transparent to-50%" />
           <div className="mb-20 mt-10 flex flex-col space-y-5 py-5">
-            <div className="container mx-auto flex max-w-4xl flex-col">
+            <div className="container mx-auto flex max-w-3xl flex-col">
               {messages.map(({ type, message }, index) => (
                 <Message key={index} type={type} message={message} />
               ))}
@@ -80,7 +253,7 @@ export default function Home() {
           </div>
         </ScrollArea>
         <div className="from-[#262626] absolute inset-x-0 bottom-0 z-50 h-20 bg-gradient-to-t from-50% to-transparent to-100%">
-          <div className="relative mx-auto mb-6 max-w-2xl px-8">
+          <div className="relative mx-auto mb-6 max-w-3xl px-8">
             <PromptForm
               onSubmit={async (value) => {
                 onSubmit(value);

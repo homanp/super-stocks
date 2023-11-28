@@ -36,7 +36,7 @@ export default function PromptFrom({ onSubmit, isLoading }: PromptProps) {
       }}
       ref={formRef}
     >
-      <div className="bg-[#2F2F2F] relative flex max-h-40 w-full grow flex-col overflow-hidden px-2 sm:rounded-2xl sm:border border-[#4C4C4C]">
+      <div className="bg-[#292929] relative flex max-h-40 w-full grow flex-col overflow-hidden px-2 sm:rounded-2xl sm:border border-[#4C4C4C]">
         <Textarea
           ref={inputRef}
           tabIndex={0}
@@ -46,7 +46,7 @@ export default function PromptFrom({ onSubmit, isLoading }: PromptProps) {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Send a message."
           spellCheck={false}
-          className="min-h-[40px] w-full resize-none bg-transparent px-2 py-[1.0rem] focus-within:outline-none sm:text-sm"
+          className="min-h-[40px] w-full resize-none bg-transparent px-2 py-[1.0rem] focus-within:outline-none sm:text-md"
         />
         <div className="absolute right-0 top-1.5 sm:right-3">
           <Button

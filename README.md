@@ -7,23 +7,17 @@ Big thanks to [Alpha Vantage](https://www.alphavantage.co/) for sponsoring us wi
 
 ## Getting Started
 1. Install dependencies:
-```bash
-npm i 
-```
+  ```bash
+  npm i 
+  ```
 
 2. Change `.env.example` to `.env` and fill out the variables
 
 3. Then run the development server:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+  ```bash
+  npm run dev
+  ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 

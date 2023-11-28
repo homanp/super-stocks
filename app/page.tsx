@@ -9,10 +9,20 @@ import { IoIosArrowForward } from "react-icons/io";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 import PromptForm from "@/components/prompt-form";
 import { MemoizedReactMarkdown } from "@/components/markdown";
 import { CodeBlock } from "@/components/codeblock";
+import { transformStockData } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -48,10 +58,6 @@ export function Message({
   message: string;
   onResubmit?: () => void;
 }) {
-  const handleCopy = () => {
-    navigator.clipboard.writeText(message);
-  };
-
   return (
     <div className="flex flex-col space-y-1 pb-4">
       <div className="min-w-4xl flex max-w-4xl space-x-4">
@@ -130,8 +136,11 @@ export function Message({
               li({ children }) {
                 return <li className="pb-1">{children}</li>;
               },
+              // @ts-ignore
               code({ node, inline, className, children, ...props }) {
+                // @ts-ignore
                 if (children.length) {
+                  // @ts-ignore
                   if (children[0] == "▍") {
                     return (
                       <span className="mt-1 animate-pulse cursor-default">
@@ -140,6 +149,7 @@ export function Message({
                     );
                   }
 
+                  // @ts-ignore
                   children[0] = (children[0] as string).replace("`▍`", "▍");
                 }
 
@@ -175,13 +185,121 @@ export function Message({
   );
 }
 
+export function Chart({ data }: { data: any }) {
+  const change = data.data[0].close - data.data[1].close;
+  const percentageChange = ((change / data.data[1].close) * 100).toFixed(2);
+  const changeColor = change < 0 ? "text-red-500" : "text-[#91FFC4]";
+
+  const gradientOffset = () => {
+    const dataMax = Math.max(...data.data.map((i: any) => i.close));
+    const dataMin = Math.min(...data.data.map((i: any) => i.close));
+
+    return dataMax / (dataMax - dataMin);
+  };
+
+  const CustomTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload: any;
+  }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="flex flex-col">
+          <p className="text-sm text-muted-foreground">
+            {payload[0].payload.date}
+          </p>
+          <p className="text-sm">${payload[0].value}</p>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  const off = gradientOffset();
+
+  return (
+    <div className="flex flex-col space-y-1 pb-4 mt-[-20px] mb-5">
+      <div className="min-w-4xl flex max-w-4xl space-x-4">
+        <div className="w-8" />
+        <div className="ml-4 mt-1 flex-1 flex-col space-y-2 overflow-hidden px-1">
+          <div className="flex items-end space-x-2">
+            <p className="text-xl font-bold">{data.ticker}</p>
+            <p className="text-xl text-muted-foreground">
+              ${data.data[0].close}
+            </p>
+            <p className={changeColor}>
+              {change.toFixed(2)} ({percentageChange}%)
+            </p>
+          </div>
+          <div className="h-[200px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                width={500}
+                height={400}
+                data={data.data.reverse()}
+                margin={{
+                  top: 10,
+                  right: 30,
+                  left: 0,
+                  bottom: 0,
+                }}
+              >
+                <Tooltip
+                  content={({ active, payload }) => (
+                    <CustomTooltip active={active} payload={payload} />
+                  )}
+                />
+                <defs>
+                  <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
+                    <stop
+                      offset="0%"
+                      stopColor="rgba(145,255,196,0.1)"
+                      stopOpacity={1}
+                    />
+                    <stop
+                      offset="100%"
+                      stopColor="rgba(145,255,196,0.1)"
+                      stopOpacity={0}
+                    />
+                  </linearGradient>
+                </defs>
+                <Area
+                  type="monotone"
+                  dataKey="close"
+                  stroke="#91FFC4"
+                  fill="url(#splitColor)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Last update: {data.data[0].date}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [messages, setMessages] = React.useState<
-    { type: string; message: string }[]
+    { type: string; message: any }[]
   >([{ type: "ai", message: "Hey there! How can I help?" }]);
 
   const getStockData = async ({ ticker }: { ticker: string }) => {
-    console.log(ticker);
+    const dataResponse = await fetch(
+      `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${ticker}&outputsize=compact&apikey=${process.env.NEXT_PUBLIC_ALPHAVANTAGE_API_KEY}`
+    );
+    const data = await dataResponse.json();
+    const chartData = transformStockData(data);
+
+    setMessages((previousMessages) => [
+      ...previousMessages,
+      { type: "function", message: { ticker, data: chartData } },
+    ]);
   };
 
   async function onSubmit(value: string) {
@@ -230,7 +348,7 @@ export default function Home() {
           if (event.event === "function_call") {
             const data = JSON.parse(event.data);
 
-            if (data.function("get_stock")) {
+            if (data.function === "get_stock") {
               await getStockData({ ...data.args });
             }
           }
@@ -246,9 +364,13 @@ export default function Home() {
           <div className="from-[#262626] absolute inset-x-0 top-0 z-20 h-20 bg-gradient-to-b from-0% to-transparent to-50%" />
           <div className="mb-20 mt-10 flex flex-col space-y-5 py-5">
             <div className="container mx-auto flex max-w-3xl flex-col">
-              {messages.map(({ type, message }, index) => (
-                <Message key={index} type={type} message={message} />
-              ))}
+              {messages.map(({ type, message }, index) =>
+                type === "function" ? (
+                  <Chart key={index} data={message} />
+                ) : (
+                  <Message key={index} type={type} message={message} />
+                )
+              )}
             </div>
           </div>
         </ScrollArea>

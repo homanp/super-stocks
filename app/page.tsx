@@ -270,7 +270,7 @@ export default function Home() {
       `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${ticker}&outputsize=compact&apikey=${process.env.NEXT_PUBLIC_ALPHAVANTAGE_API_KEY}`
     );
     const data = await dataResponse.json();
-    const chartData = transformStockData(data);
+    const chartData = transformStockData(data).reverse();
 
     setMessages((previousMessages) => [
       ...previousMessages,
@@ -342,7 +342,7 @@ export default function Home() {
             <div className="container mx-auto flex max-w-3xl flex-col">
               {messages.map(({ type, message }, index) =>
                 type === "function" ? (
-                  <Chart key={index} data={message.reverse()} />
+                  <Chart key={index} data={message} />
                 ) : (
                   <Message key={index} type={type} message={message} />
                 )

@@ -117,7 +117,7 @@ export function Message({
                 return (
                   <a
                     href={href}
-                    className="text-primary underline"
+                    className="text-[#91FFC4] underline"
                     rel="noreferrer"
                     target="_blank"
                   >
@@ -138,21 +138,6 @@ export function Message({
               },
               // @ts-ignore
               code({ node, inline, className, children, ...props }) {
-                // @ts-ignore
-                if (children.length) {
-                  // @ts-ignore
-                  if (children[0] === "▍") {
-                    return (
-                      <span className="mt-1 animate-pulse cursor-default">
-                        ▍
-                      </span>
-                    );
-                  }
-
-                  // @ts-ignore
-                  children[0] = (children[0] as string).replace("`▍`", "▍");
-                }
-
                 const match = /language-(\w+)/.exec(className || "");
 
                 if (inline) {
@@ -190,13 +175,6 @@ export function Chart({ data }: { data: any }) {
   const percentageChange = ((change / data.data[1].close) * 100).toFixed(2);
   const changeColor = change < 0 ? "text-red-500" : "text-[#91FFC4]";
 
-  const gradientOffset = () => {
-    const dataMax = Math.max(...data.data.map((i: any) => i.close));
-    const dataMin = Math.min(...data.data.map((i: any) => i.close));
-
-    return dataMax / (dataMax - dataMin);
-  };
-
   const CustomTooltip = ({
     active,
     payload,
@@ -217,8 +195,6 @@ export function Chart({ data }: { data: any }) {
 
     return null;
   };
-
-  const off = gradientOffset();
 
   return (
     <div className="flex flex-col space-y-1 pb-4 mt-[-20px] mb-5">
@@ -276,7 +252,7 @@ export function Chart({ data }: { data: any }) {
             </ResponsiveContainer>
           </div>
           <p className="text-sm text-muted-foreground">
-            Last update: {data.data[0].date}
+            Last update: {data.data[data.data.length - 1].date}
           </p>
         </div>
       </div>

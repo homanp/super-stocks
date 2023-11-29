@@ -1,9 +1,13 @@
 # SuperStocks 📈
+
 https://github.com/homanp/super-stocks/assets/2464556/926fcda6-d9a1-49b6-8a10-02a4b1672de2
 
 This project is a POC on how to run custom functions/tools with [Superagent.sh](https://github.com/homanp/superagent). 
 
-Big thanks to [Alpha Vantage](https://www.alphavantage.co/) for sponsoring us with access to their API. 
+Big thanks to [Alpha Vantage](https://www.alphavantage.co/) for sponsoring us with access to their API.
+
+## Demo
+[https://super-stocks.vercel.app](https://super-stocks.vercel.ap)
 
 ## Getting Started
 1. Install dependencies:

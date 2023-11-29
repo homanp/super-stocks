@@ -342,7 +342,7 @@ export default function Home() {
             <div className="container mx-auto flex max-w-3xl flex-col">
               {messages.map(({ type, message }, index) =>
                 type === "function" ? (
-                  <Chart key={index} data={message} />
+                  <Chart key={index} data={message.reverse()} />
                 ) : (
                   <Message key={index} type={type} message={message} />
                 )

@@ -215,7 +215,7 @@ function Chart({ data }: { data: any }) {
               <AreaChart
                 width={500}
                 height={400}
-                data={data.data.reverse()}
+                data={data.data}
                 margin={{
                   top: 10,
                   right: 30,
@@ -252,7 +252,7 @@ function Chart({ data }: { data: any }) {
             </ResponsiveContainer>
           </div>
           <p className="text-sm text-muted-foreground">
-            Last update: {data.data[data.data.length - 1].date}
+            Last update: {data.data[0].date}
           </p>
         </div>
       </div>

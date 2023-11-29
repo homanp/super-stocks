@@ -50,7 +50,7 @@ function PulsatingCursor() {
   );
 }
 
-export function Message({
+function Message({
   type,
   message,
 }: {
@@ -170,7 +170,7 @@ export function Message({
   );
 }
 
-export function Chart({ data }: { data: any }) {
+function Chart({ data }: { data: any }) {
   const change = data.data[0].close - data.data[1].close;
   const percentageChange = ((change / data.data[1].close) * 100).toFixed(2);
   const changeColor = change < 0 ? "text-red-500" : "text-[#91FFC4]";

@@ -2,13 +2,22 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RiUserLine } from "react-icons/ri";
 import { IoIosArrowForward } from "react-icons/io";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 import PromptForm from "@/components/prompt-form";
 import { MemoizedReactMarkdown } from "@/components/markdown";

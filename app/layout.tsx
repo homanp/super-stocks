@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import { ThemeProvider } from "@/components/theme-provider";
+import { cn } from "@/lib/utils";
 
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "📈 SuperStock | Research stocks using AI",
+  title: "NO-7B | Open Source online-first LLM",
   description:
-    "SuperStock enables you to research stocks and companies using AI.",
+    "NO-7B is an open source llm designed to surpass the knowledge cut-off date by leveraging the internet to output real-time and factual responses. licence: mit",
 };
 
 export default function RootLayout({
@@ -16,7 +19,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-[#292929]">
+      <body
+        className={cn(
+          "font-sans antialiased bg-[#292929]",
+          GeistSans.variable,
+          GeistMono.variable
+        )}
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

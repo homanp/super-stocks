@@ -9,12 +9,11 @@ import { IoIosArrowForward } from "react-icons/io";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
-import { AreaChart, Area, Tooltip, ResponsiveContainer } from "recharts";
 
 import PromptForm from "@/components/prompt-form";
 import { MemoizedReactMarkdown } from "@/components/markdown";
 import { CodeBlock } from "@/components/codeblock";
-import { transformStockData } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -23,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import Header from "@/components/header";
 
 function PulsatingCursor() {
   return (
@@ -54,7 +54,7 @@ function Message({
     <div className="flex flex-col space-y-1 pb-4">
       <div className="min-w-4xl flex max-w-4xl space-x-4">
         <Avatar
-          className={`h-8 w-8 rounded-md p-[1px] ${
+          className={`h-10 w-10 rounded-md p-[1px] ${
             type === "ai" && message.length === 0
               ? "animate-border bg-gradient-to-r from-transparent via-gray-500 to-white bg-[length:400%_400%]"
               : "bg-transparent border border-[#4C4C4C]"
@@ -74,7 +74,7 @@ function Message({
             )}
           </AvatarFallback>
         </Avatar>
-        <div className="ml-4 mt-1 flex-1 flex-col space-y-2 overflow-hidden px-1">
+        <div className="ml-4 mt-2 flex-1 flex-col space-y-2 overflow-hidden px-1">
           {message?.length === 0 && <PulsatingCursor />}
           <MemoizedReactMarkdown
             className="prose dark:prose-invert prose-p:leading-relaxed prose-pre:p-0 break-words text-md"
@@ -126,30 +126,22 @@ function Message({
                 return <ul className="mb-5 list-disc pl-[30px]">{children}</ul>;
               },
               li({ children }) {
-                return <li className="pb-1">{children}</li>;
+                return <li className="pb-1 mb-[-1.25rem]">{children}</li>;
               },
               // @ts-ignore
               code({ node, inline, className, children, ...props }) {
                 const match = /language-(\w+)/.exec(className || "");
-
-                if (inline) {
-                  return (
-                    <code
-                      className="light:bg-slate-200 px-1 text-md dark:bg-slate-800"
-                      {...props}
-                    >
-                      {children}
-                    </code>
-                  );
-                }
-
-                return (
+                return !inline && match ? (
                   <CodeBlock
                     key={Math.random()}
                     language={(match && match[1]) || ""}
                     value={String(children).replace(/\n$/, "")}
                     {...props}
                   />
+                ) : (
+                  <Badge variant="outline" className="text-md" {...props}>
+                    {children}
+                  </Badge>
                 );
               },
             }}
@@ -162,113 +154,10 @@ function Message({
   );
 }
 
-function Chart({ data }: { data: any }) {
-  const change = data.data[0].close - data.data[1].close;
-  const percentageChange = ((change / data.data[1].close) * 100).toFixed(2);
-  const changeColor = change < 0 ? "text-red-500" : "text-[#91FFC4]";
-
-  const CustomTooltip = ({
-    active,
-    payload,
-  }: {
-    active?: boolean;
-    payload: any;
-  }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="flex flex-col">
-          <p className="text-sm text-muted-foreground">
-            {payload[0].payload.date}
-          </p>
-          <p className="text-sm">${payload[0].value}</p>
-        </div>
-      );
-    }
-
-    return null;
-  };
-
-  return (
-    <div className="flex flex-col space-y-1 pb-4 mt-[-20px] mb-5">
-      <div className="min-w-4xl flex max-w-4xl space-x-4">
-        <div className="w-8" />
-        <div className="ml-4 mt-1 flex-1 flex-col space-y-2 overflow-hidden px-1">
-          <div className="flex items-end space-x-2">
-            <p className="text-xl font-bold">{data.ticker}</p>
-            <p className="text-xl text-muted-foreground">
-              ${data.data[0].close}
-            </p>
-            <p className={changeColor}>
-              {change.toFixed(2)} ({percentageChange}%)
-            </p>
-          </div>
-          <div className="h-[200px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                width={500}
-                height={400}
-                data={data.data}
-                margin={{
-                  top: 10,
-                  right: 30,
-                  left: 0,
-                  bottom: 0,
-                }}
-              >
-                <Tooltip
-                  content={({ active, payload }) => (
-                    <CustomTooltip active={active} payload={payload} />
-                  )}
-                />
-                <defs>
-                  <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="0%"
-                      stopColor="rgba(145,255,196,0.1)"
-                      stopOpacity={1}
-                    />
-                    <stop
-                      offset="100%"
-                      stopColor="rgba(145,255,196,0.1)"
-                      stopOpacity={0}
-                    />
-                  </linearGradient>
-                </defs>
-                <Area
-                  type="monotone"
-                  dataKey="close"
-                  stroke="#91FFC4"
-                  fill="url(#splitColor)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Last update: {data.data[0].date}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function Home() {
   const [messages, setMessages] = React.useState<
     { type: string; message: any }[]
-  >([{ type: "ai", message: "Hey there! How can I help?" }]);
-
-  const getStockData = async ({ ticker }: { ticker: string }) => {
-    const dataResponse = await fetch(
-      `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${ticker}&outputsize=compact&apikey=${process.env.NEXT_PUBLIC_ALPHAVANTAGE_API_KEY}`
-    );
-    const data = await dataResponse.json();
-    const chartData = transformStockData(data).reverse();
-
-    setMessages((previousMessages) => [
-      ...previousMessages,
-      { type: "function", message: { ticker, data: chartData } },
-    ]);
-  };
+  >([{ type: "ai", message: "Hey there! Ask me about real-time events." }]);
 
   async function onSubmit(value: string) {
     let message = "";
@@ -283,62 +172,46 @@ export default function Home() {
       { type: "ai", message },
     ]);
 
-    await fetchEventSource(
-      `${process.env.NEXT_PUBLIC_SUPERAGENT_API_URL}/agents/${process.env.NEXT_PUBLIC_AGENT_ID}/invoke`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPERAGENT_API_KEY}`,
-        },
-        body: JSON.stringify({
-          input: value,
-          enableStreaming: true,
-        }),
-        openWhenHidden: true,
-        async onmessage(event) {
-          if (event.data !== "[END]" && event.event !== "function_call") {
-            message += event.data === "" ? `${event.data} \n` : event.data;
-            setMessages((previousMessages) => {
-              let updatedMessages = [...previousMessages];
+    await fetchEventSource("https://nagato-online-7b.replit.app/completion", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: value,
+      }),
+      openWhenHidden: true,
+      async onmessage(event) {
+        if (event.data !== "[END]") {
+          message += event.data === "" ? `${event.data}\n` : event.data;
+          setMessages((previousMessages) => {
+            let updatedMessages = [...previousMessages];
 
-              for (let i = updatedMessages.length - 1; i >= 0; i--) {
-                if (updatedMessages[i].type === "ai") {
-                  updatedMessages[i].message = message;
-                  break;
-                }
+            for (let i = updatedMessages.length - 1; i >= 0; i--) {
+              if (updatedMessages[i].type === "ai") {
+                updatedMessages[i].message = message;
+                break;
               }
-
-              return updatedMessages;
-            });
-          }
-
-          if (event.event === "function_call") {
-            const data = JSON.parse(event.data);
-
-            if (data.function === "get_stock") {
-              await getStockData({ ...data.args });
             }
-          }
-        },
-      }
-    );
+
+            return updatedMessages;
+          });
+        }
+      },
+    });
   }
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
+      <Header />
       <div className="relative flex flex-1 flex-col overflow-hidden border-r">
         <ScrollArea className="relative flex grow flex-col px-4">
-          <div className="from-[#262626] absolute inset-x-0 top-0 z-20 h-20 bg-gradient-to-b from-0% to-transparent to-50%" />
+          <div className="from-[#262626] absolute inset-x-0 top-0 z-20 h-20 bg-gradient-to-b from-0% to-transparent to-30%" />
           <div className="mb-20 mt-10 flex flex-col space-y-5 py-5">
             <div className="container mx-auto flex max-w-3xl flex-col">
-              {messages.map(({ type, message }, index) =>
-                type === "function" ? (
-                  <Chart key={index} data={message} />
-                ) : (
-                  <Message key={index} type={type} message={message} />
-                )
-              )}
+              {messages.map(({ type, message }, index) => (
+                <Message key={index} type={type} message={message} />
+              ))}
             </div>
           </div>
         </ScrollArea>
